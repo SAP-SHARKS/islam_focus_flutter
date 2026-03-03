@@ -1,0 +1,53 @@
+name: islam_focus_flutter
+description: Islam Focus - Digital Wellness App with Islamic Theme
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Backend & Auth
+  supabase_flutter: ^2.5.6
+  google_sign_in: ^6.2.1
+
+  # UI & Design
+  google_fonts: ^6.2.1
+  lottie: ^3.1.0
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+  fl_chart: ^0.68.0
+  percent_indicator: ^4.2.3
+  iconsax: ^0.0.8
+
+  # Local Storage
+  shared_preferences: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # Navigation
+  go_router: ^14.2.0
+
+  # Utils
+  intl: ^0.19.0
+  uuid: ^4.3.3
+  connectivity_plus: ^6.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  riverpod_generator: ^2.4.0
+  build_runner: ^2.4.8
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/animations/
