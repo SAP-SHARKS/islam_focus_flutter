@@ -62,6 +62,13 @@ class _BlockedAppsScreenState extends ConsumerState<BlockedAppsScreen>
     super.dispose();
   }
 
+  void _onSearchChanged(String val) {
+    setState(() => _searchQuery = val);
+    if (val.isNotEmpty && _tabController.index != 1) {
+      _tabController.animateTo(1);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final blockState = ref.watch(blockingProvider);
@@ -104,7 +111,7 @@ class _BlockedAppsScreenState extends ConsumerState<BlockedAppsScreen>
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
             child: _SearchBar(
               controller: _searchController,
-              onChanged: (val) => setState(() => _searchQuery = val),
+              onChanged: _onSearchChanged,
               onClear: () { _searchController.clear(); setState(() => _searchQuery = ''); },
               query: _searchQuery,
             ),
@@ -130,7 +137,10 @@ class _BlockedAppsScreenState extends ConsumerState<BlockedAppsScreen>
           const SizedBox(height: 8),
           Expanded(
             child: blockState.isLoadingApps
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF1DB954)))
+                ? ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: List.generate(8, (_) => const _SkeletonListItem()),
+                  )
                 : TabBarView(
                     controller: _tabController,
                     children: [
@@ -184,6 +194,13 @@ class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedApp
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String val) {
+    setState(() => _searchQuery = val);
+    if (val.isNotEmpty && _tabController.index != 1) {
+      _tabController.animateTo(1);
+    }
   }
 
   Future<void> _finishSetup() async {
@@ -240,7 +257,7 @@ class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedApp
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: _SearchBar(
                 controller: _searchController,
-                onChanged: (val) => setState(() => _searchQuery = val),
+                onChanged: _onSearchChanged,
                 onClear: () { _searchController.clear(); setState(() => _searchQuery = ''); },
                 query: _searchQuery,
               ),
@@ -266,7 +283,10 @@ class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedApp
             const SizedBox(height: 8),
             Expanded(
               child: blockState.isLoadingApps
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF1DB954)))
+                  ? ListView(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      children: List.generate(8, (_) => const _SkeletonListItem()),
+                    )
                   : TabBarView(
                       controller: _tabController,
                       children: [
@@ -300,7 +320,7 @@ class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedApp
   }
 }
 
-// ===== SEARCH BAR WIDGET =====
+// ===== SEARCH BAR =====
 class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
@@ -340,7 +360,7 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-// ===== APP LIST WIDGET =====
+// ===== APP LIST =====
 class _AppList extends StatelessWidget {
   final List<InstalledApp> apps;
   final BlockingState blockState;
@@ -405,10 +425,7 @@ class _AppList extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
                         color: isBlocked ? const Color(0xFF1DB954) : Colors.transparent,
-                        border: Border.all(
-                          color: isBlocked ? const Color(0xFF1DB954) : const Color(0xFFCCCCCC),
-                          width: 2,
-                        ),
+                        border: Border.all(color: isBlocked ? const Color(0xFF1DB954) : const Color(0xFFCCCCCC), width: 2),
                       ),
                       child: isBlocked ? const Icon(Icons.check, size: 18, color: Colors.white) : null,
                     ),
@@ -423,7 +440,7 @@ class _AppList extends StatelessWidget {
   }
 }
 
-// ===== REAL APP ICON WIDGET =====
+// ===== REAL APP ICON =====
 class _BlockingAppIcon extends ConsumerWidget {
   final String packageName;
   final bool isBlocked;
@@ -434,7 +451,6 @@ class _BlockingAppIcon extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef widgetRef) {
     final iconAsync = widgetRef.watch(appIconProvider(packageName));
-
     return Container(
       width: 48, height: 48,
       decoration: BoxDecoration(
@@ -450,20 +466,88 @@ class _BlockingAppIcon extends ConsumerWidget {
           }
           return _fallback();
         },
-        loading: () => const Center(
-          child: SizedBox(width: 20, height: 20,
-              child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF1DB954))),
-        ),
+        loading: () => const Center(child: SizedBox(width: 20, height: 20,
+            child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF1DB954)))),
         error: (_, __) => _fallback(),
       ),
     );
   }
 
   Widget _fallback() {
-    return Icon(
-      isBlocked ? Icons.block_rounded : Icons.apps_rounded,
-      color: isBlocked ? const Color(0xFF1DB954) : const Color(0xFF888888),
-      size: 24,
+    return Icon(isBlocked ? Icons.block_rounded : Icons.apps_rounded,
+        color: isBlocked ? const Color(0xFF1DB954) : const Color(0xFF888888), size: 24);
+  }
+}
+
+// ===== SKELETON LIST ITEM =====
+class _SkeletonListItem extends StatefulWidget {
+  const _SkeletonListItem();
+
+  @override
+  State<_SkeletonListItem> createState() => _SkeletonListItemState();
+}
+
+class _SkeletonListItemState extends State<_SkeletonListItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, _) {
+        final c = Color.lerp(const Color(0xFFE8E8E8), const Color(0xFFF5F5F5), _animation.value)!;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE8E8E8)),
+            ),
+            child: Row(
+              children: [
+                Container(width: 48, height: 48,
+                    decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(14))),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(height: 14, width: double.infinity,
+                          decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(6))),
+                      const SizedBox(height: 6),
+                      Container(height: 10, width: 120,
+                          decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(6))),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(width: 28, height: 28,
+                    decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(8))),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

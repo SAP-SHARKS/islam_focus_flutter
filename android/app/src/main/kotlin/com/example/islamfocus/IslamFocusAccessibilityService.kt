@@ -91,7 +91,7 @@ class IslamFocusAccessibilityService : AccessibilityService() {
         val blockedApps = prefs.getStringSet("blocked_apps_set", emptySet()) ?: emptySet()
         if (!blockedApps.contains(packageName)) return
 
-        // DELAY INTERVENTION BY 500ms
+        // DELAY INTERVENTION BY 300ms
         // Prevents false triggers when app is closing
         cancelPendingIntervention()
 
@@ -101,7 +101,7 @@ class IslamFocusAccessibilityService : AccessibilityService() {
                 launchIntervention(appToBlock)
             }
         }
-        handler.postDelayed(pendingIntervention!!, 500)
+        handler.postDelayed(pendingIntervention!!, 300)
     }
 
     private fun cancelPendingIntervention() {
