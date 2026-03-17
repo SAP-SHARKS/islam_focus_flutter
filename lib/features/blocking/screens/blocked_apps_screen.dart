@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,8 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:islam_focus_flutter/features/blocking/providers/blocking_provider.dart';
 import 'package:islam_focus_flutter/features/auth/screens/auth_gate.dart';
+import 'package:islam_focus_flutter/features/home/screens/focus_tab.dart';
 
-// Usage data provider for "Most Used" tab
 final appUsageDataProvider = FutureProvider<Map<String, int>>((ref) async {
   try {
     const channel = MethodChannel('com.example.islamfocus/usage_stats');
@@ -35,15 +36,18 @@ String _formatDuration(int ms) {
   return '< 1m this week';
 }
 
-// ===== MAIN BLOCKED APPS SCREEN (from Settings) =====
+// ===== MAIN BLOCKED APPS SCREEN =====
 class BlockedAppsScreen extends ConsumerStatefulWidget {
   const BlockedAppsScreen({super.key});
   @override
   ConsumerState<BlockedAppsScreen> createState() => _BlockedAppsScreenState();
 }
 
-class _BlockedAppsScreenState extends ConsumerState<BlockedAppsScreen> with SingleTickerProviderStateMixin {
+class _BlockedAppsScreenState extends ConsumerState<BlockedAppsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -54,6 +58,7 @@ class _BlockedAppsScreenState extends ConsumerState<BlockedAppsScreen> with Sing
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -71,15 +76,39 @@ class _BlockedAppsScreenState extends ConsumerState<BlockedAppsScreen> with Sing
     final topUsed = mostUsedApps.where((a) => (usageMap[a.packageName] ?? 0) > 60000).toList();
     allApps.sort((a, b) => a.appName.toLowerCase().compareTo(b.appName.toLowerCase()));
 
+    List<InstalledApp> filteredTopUsed = topUsed;
+    List<InstalledApp> filteredAllApps = allApps;
+    List<InstalledApp> filteredBlocked = blockedApps;
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      filteredTopUsed = topUsed.where((a) => a.appName.toLowerCase().contains(q)).toList();
+      filteredAllApps = allApps.where((a) => a.appName.toLowerCase().contains(q)).toList();
+      filteredBlocked = blockedApps.where((a) => a.appName.toLowerCase().contains(q)).toList();
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFFDF8F4),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFDF8F4), elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Color(0xFF1A1A1A)), onPressed: () => Navigator.pop(context)),
-        title: Text('Select Apps to Lock', style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+        backgroundColor: const Color(0xFFFDF8F4),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Color(0xFF1A1A1A)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text('Select Apps to Lock',
+            style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: _SearchBar(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _searchQuery = val),
+              onClear: () { _searchController.clear(); setState(() => _searchQuery = ''); },
+              query: _searchQuery,
+            ),
+          ),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
             child: TabBar(
@@ -92,9 +121,9 @@ class _BlockedAppsScreenState extends ConsumerState<BlockedAppsScreen> with Sing
               indicatorWeight: 3,
               labelPadding: const EdgeInsets.symmetric(horizontal: 4),
               tabs: [
-                Tab(child: Text('Most Used (${topUsed.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                Tab(child: Text('All Apps (${allApps.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                Tab(child: Text('Locked (${blockedApps.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                Tab(child: Text('Most Used (${filteredTopUsed.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                Tab(child: Text('All Apps (${filteredAllApps.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                Tab(child: Text('Locked (${filteredBlocked.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
               ],
             ),
           ),
@@ -105,9 +134,9 @@ class _BlockedAppsScreenState extends ConsumerState<BlockedAppsScreen> with Sing
                 : TabBarView(
                     controller: _tabController,
                     children: [
-                      _AppList(apps: topUsed, blockState: blockState, ref: ref, usageMap: usageMap),
-                      _AppList(apps: allApps, blockState: blockState, ref: ref, usageMap: usageMap),
-                      _AppList(apps: blockedApps, blockState: blockState, ref: ref, usageMap: usageMap, emptyMsg: 'No locked apps yet'),
+                      _AppList(apps: filteredTopUsed, blockState: blockState, ref: ref, usageMap: usageMap),
+                      _AppList(apps: filteredAllApps, blockState: blockState, ref: ref, usageMap: usageMap),
+                      _AppList(apps: filteredBlocked, blockState: blockState, ref: ref, usageMap: usageMap, emptyMsg: 'No locked apps yet'),
                     ],
                   ),
           ),
@@ -117,8 +146,10 @@ class _BlockedAppsScreenState extends ConsumerState<BlockedAppsScreen> with Sing
               width: double.infinity, height: 56,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1DB954), foregroundColor: Colors.white, elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1DB954), foregroundColor: Colors.white,
+                  elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
                 child: Text('Save Changes', style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w600)),
               ),
             ),
@@ -136,8 +167,11 @@ class FirstTimeBlockedAppsScreen extends ConsumerStatefulWidget {
   ConsumerState<FirstTimeBlockedAppsScreen> createState() => _FirstTimeBlockedAppsScreenState();
 }
 
-class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedAppsScreen> with SingleTickerProviderStateMixin {
+class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedAppsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -146,13 +180,18 @@ class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedApp
   }
 
   @override
-  void dispose() { _tabController.dispose(); super.dispose(); }
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   Future<void> _finishSetup() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('app_blocking_setup_complete', true);
     if (mounted) {
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => AuthGate()), (route) => false);
+      Navigator.pushAndRemoveUntil(
+          context, MaterialPageRoute(builder: (_) => AuthGate()), (route) => false);
     }
   }
 
@@ -170,6 +209,16 @@ class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedApp
     final topUsed = mostUsedApps.where((a) => (usageMap[a.packageName] ?? 0) > 60000).toList();
     allApps.sort((a, b) => a.appName.toLowerCase().compareTo(b.appName.toLowerCase()));
 
+    List<InstalledApp> filteredTopUsed = topUsed;
+    List<InstalledApp> filteredAllApps = allApps;
+    List<InstalledApp> filteredBlocked = blockedApps;
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      filteredTopUsed = topUsed.where((a) => a.appName.toLowerCase().contains(q)).toList();
+      filteredAllApps = allApps.where((a) => a.appName.toLowerCase().contains(q)).toList();
+      filteredBlocked = blockedApps.where((a) => a.appName.toLowerCase().contains(q)).toList();
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFFDF8F4),
       body: SafeArea(
@@ -179,12 +228,23 @@ class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedApp
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Select Apps to Lock', style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+                Text('Select Apps to Lock',
+                    style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
                 const SizedBox(height: 8),
-                Text('Choose apps you want Islam Focus to intervene before opening.', style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF888888), height: 1.5)),
+                Text('Choose apps you want Islam Focus to intervene before opening.',
+                    style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF888888), height: 1.5)),
               ]),
             ),
             const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: _SearchBar(
+                controller: _searchController,
+                onChanged: (val) => setState(() => _searchQuery = val),
+                onClear: () { _searchController.clear(); setState(() => _searchQuery = ''); },
+                query: _searchQuery,
+              ),
+            ),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               child: TabBar(
@@ -197,9 +257,9 @@ class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedApp
                 indicatorWeight: 3,
                 labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                 tabs: [
-                  Tab(child: Text('Most Used (${topUsed.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                  Tab(child: Text('All Apps (${allApps.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                  Tab(child: Text('Locked (${blockedApps.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                  Tab(child: Text('Most Used (${filteredTopUsed.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                  Tab(child: Text('All Apps (${filteredAllApps.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                  Tab(child: Text('Locked (${filteredBlocked.length})', overflow: TextOverflow.ellipsis, maxLines: 1)),
                 ],
               ),
             ),
@@ -210,9 +270,9 @@ class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedApp
                   : TabBarView(
                       controller: _tabController,
                       children: [
-                        _AppList(apps: topUsed, blockState: blockState, ref: ref, usageMap: usageMap),
-                        _AppList(apps: allApps, blockState: blockState, ref: ref, usageMap: usageMap),
-                        _AppList(apps: blockedApps, blockState: blockState, ref: ref, usageMap: usageMap, emptyMsg: 'No locked apps yet'),
+                        _AppList(apps: filteredTopUsed, blockState: blockState, ref: ref, usageMap: usageMap),
+                        _AppList(apps: filteredAllApps, blockState: blockState, ref: ref, usageMap: usageMap),
+                        _AppList(apps: filteredBlocked, blockState: blockState, ref: ref, usageMap: usageMap, emptyMsg: 'No locked apps yet'),
                       ],
                     ),
             ),
@@ -222,13 +282,58 @@ class _FirstTimeBlockedAppsScreenState extends ConsumerState<FirstTimeBlockedApp
                 width: double.infinity, height: 56,
                 child: ElevatedButton(
                   onPressed: _finishSetup,
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1DB954), foregroundColor: Colors.white, elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                  child: Text(blockState.blockedPackages.isEmpty ? 'Skip for Now' : 'Save Changes', style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w600)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1DB954), foregroundColor: Colors.white,
+                    elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text(
+                    blockState.blockedPackages.isEmpty ? 'Skip for Now' : 'Save Changes',
+                    style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===== SEARCH BAR WIDGET =====
+class _SearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+  final String query;
+
+  const _SearchBar({required this.controller, required this.onChanged, required this.onClear, required this.query});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 46,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF1A1A1A)),
+        decoration: InputDecoration(
+          hintText: 'Search apps...',
+          hintStyle: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF999999)),
+          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF999999), size: 20),
+          suffixIcon: query.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Color(0xFF999999), size: 18),
+                  onPressed: onClear,
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
       ),
     );
@@ -277,28 +382,21 @@ class _AppList extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 child: Row(
                   children: [
-                    Container(
-                      width: 48, height: 48,
-                      decoration: BoxDecoration(
-                        color: isBlocked ? const Color(0xFF1DB954).withOpacity(0.1) : const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        _getAppIcon(app.packageName),
-                        color: isBlocked ? const Color(0xFF1DB954) : const Color(0xFF888888),
-                        size: 24,
-                      ),
-                    ),
+                    _BlockingAppIcon(packageName: app.packageName, isBlocked: isBlocked, ref: ref),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(app.appName, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500, color: const Color(0xFF1A1A1A))),
+                          Text(app.appName,
+                              style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500, color: const Color(0xFF1A1A1A))),
                           if (usageTime > 60000)
-                            Text(_formatDuration(usageTime), style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF999999)))
+                            Text(_formatDuration(usageTime),
+                                style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF999999)))
                           else
-                            Text(app.packageName, style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFFBBBBBB)), overflow: TextOverflow.ellipsis),
+                            Text(app.packageName,
+                                style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFFBBBBBB)),
+                                overflow: TextOverflow.ellipsis),
                         ],
                       ),
                     ),
@@ -307,7 +405,10 @@ class _AppList extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
                         color: isBlocked ? const Color(0xFF1DB954) : Colors.transparent,
-                        border: Border.all(color: isBlocked ? const Color(0xFF1DB954) : const Color(0xFFCCCCCC), width: 2),
+                        border: Border.all(
+                          color: isBlocked ? const Color(0xFF1DB954) : const Color(0xFFCCCCCC),
+                          width: 2,
+                        ),
                       ),
                       child: isBlocked ? const Icon(Icons.check, size: 18, color: Colors.white) : null,
                     ),
@@ -320,22 +421,49 @@ class _AppList extends StatelessWidget {
       },
     );
   }
+}
 
-  IconData _getAppIcon(String pkg) {
-    if (pkg.contains('whatsapp')) return Icons.message_rounded;
-    if (pkg.contains('facebook')) return Icons.facebook_rounded;
-    if (pkg.contains('instagram')) return Icons.camera_alt_rounded;
-    if (pkg.contains('youtube')) return Icons.play_circle_filled_rounded;
-    if (pkg.contains('tiktok') || pkg.contains('musically')) return Icons.music_note_rounded;
-    if (pkg.contains('twitter')) return Icons.tag_rounded;
-    if (pkg.contains('snapchat')) return Icons.chat_bubble_rounded;
-    if (pkg.contains('telegram')) return Icons.send_rounded;
-    if (pkg.contains('reddit')) return Icons.forum_rounded;
-    if (pkg.contains('discord')) return Icons.headset_mic_rounded;
-    if (pkg.contains('spotify')) return Icons.library_music_rounded;
-    if (pkg.contains('netflix')) return Icons.movie_rounded;
-    if (pkg.contains('chrome') || pkg.contains('browser')) return Icons.language_rounded;
-    if (pkg.contains('game') || pkg.contains('pubg') || pkg.contains('clash')) return Icons.sports_esports_rounded;
-    return Icons.apps_rounded;
+// ===== REAL APP ICON WIDGET =====
+class _BlockingAppIcon extends ConsumerWidget {
+  final String packageName;
+  final bool isBlocked;
+  final WidgetRef ref;
+
+  const _BlockingAppIcon({required this.packageName, required this.isBlocked, required this.ref});
+
+  @override
+  Widget build(BuildContext context, WidgetRef widgetRef) {
+    final iconAsync = widgetRef.watch(appIconProvider(packageName));
+
+    return Container(
+      width: 48, height: 48,
+      decoration: BoxDecoration(
+        color: isBlocked ? const Color(0xFF1DB954).withOpacity(0.1) : const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: iconAsync.when(
+        data: (iconBytes) {
+          if (iconBytes != null && iconBytes.isNotEmpty) {
+            return Image.memory(iconBytes, width: 48, height: 48, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _fallback());
+          }
+          return _fallback();
+        },
+        loading: () => const Center(
+          child: SizedBox(width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF1DB954))),
+        ),
+        error: (_, __) => _fallback(),
+      ),
+    );
+  }
+
+  Widget _fallback() {
+    return Icon(
+      isBlocked ? Icons.block_rounded : Icons.apps_rounded,
+      color: isBlocked ? const Color(0xFF1DB954) : const Color(0xFF888888),
+      size: 24,
+    );
   }
 }

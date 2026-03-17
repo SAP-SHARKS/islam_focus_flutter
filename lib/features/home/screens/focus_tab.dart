@@ -57,11 +57,10 @@ class FocusTab extends ConsumerWidget {
       for (final app in usageData) {
         final timeMs = (app['totalTimeMs'] as num?)?.toInt() ?? 0;
         totalScreenTimeMs += timeMs;
-        if (timeMs > 60000) {
-          topApps.add(app);
-        }
+        if (timeMs > 60000) topApps.add(app);
       }
-      topApps.sort((a, b) => ((b['totalTimeMs'] as num?)?.toInt() ?? 0).compareTo((a['totalTimeMs'] as num?)?.toInt() ?? 0));
+      topApps.sort((a, b) => ((b['totalTimeMs'] as num?)?.toInt() ?? 0)
+          .compareTo((a['totalTimeMs'] as num?)?.toInt() ?? 0));
       if (topApps.length > 10) topApps = topApps.sublist(0, 10);
     });
 
@@ -80,24 +79,32 @@ class FocusTab extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white, borderRadius: BorderRadius.circular(24),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: const Color(0xFFE8E8E8)),
                 ),
                 child: Column(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: theme.primaryColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
                       child: Icon(Icons.format_quote_rounded, color: theme.primaryColor, size: 24),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       '"Verily, in the remembrance of Allah do hearts find rest."',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A), height: 1.5),
+                      style: GoogleFonts.poppins(
+                        fontSize: 16, fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1A1A1A), height: 1.5,
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    Text("Surah Ar-Ra'd 13:28", style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF888888), fontWeight: FontWeight.w500)),
+                    Text("Surah Ar-Ra'd 13:28",
+                        style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF888888), fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
@@ -155,21 +162,14 @@ class FocusTab extends ConsumerWidget {
               const SizedBox(height: 28),
 
               // Today's App Usage
-              Text("Today's App Usage", style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+              Text("Today's App Usage",
+                  style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
               const SizedBox(height: 16),
 
+              // Loading State — Skeleton Cards
               if (usageAsync.isLoading)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE8E8E8))),
-                  child: Column(
-                    children: [
-                      SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: theme.primaryColor)),
-                      const SizedBox(height: 12),
-                      Text('Loading usage data...', style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF888888))),
-                    ],
-                  ),
+                Column(
+                  children: List.generate(5, (index) => const _SkeletonAppCard()),
                 )
               else if (topApps.isNotEmpty)
                 ...topApps.map((app) {
@@ -185,8 +185,11 @@ class FocusTab extends ConsumerWidget {
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white, borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: isBlocked ? const Color(0xFFFFCDD2) : const Color(0xFFE8E8E8)),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isBlocked ? const Color(0xFFFFCDD2) : const Color(0xFFE8E8E8),
+                        ),
                       ),
                       child: Column(
                         children: [
@@ -195,16 +198,32 @@ class FocusTab extends ConsumerWidget {
                               _AppIcon(packageName: packageName, isBlocked: isBlocked, ref: ref),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: Text(appName, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF1A1A1A)), overflow: TextOverflow.ellipsis),
+                                child: Text(appName,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14, fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF1A1A1A),
+                                    ),
+                                    overflow: TextOverflow.ellipsis),
                               ),
                               if (isBlocked)
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(6)),
-                                  child: Text('Blocked', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFFE91E63))),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFEBEE),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text('Blocked',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 10, fontWeight: FontWeight.w600,
+                                        color: const Color(0xFFE91E63),
+                                      )),
                                 ),
                               const SizedBox(width: 8),
-                              Text(_formatDuration(timeMs), style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF333333))),
+                              Text(_formatDuration(timeMs),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13, fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF333333),
+                                  )),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -213,7 +232,9 @@ class FocusTab extends ConsumerWidget {
                             child: LinearProgressIndicator(
                               value: progress,
                               backgroundColor: const Color(0xFFF0F0F0),
-                              valueColor: AlwaysStoppedAnimation(isBlocked ? const Color(0xFFE91E63) : const Color(0xFF1DB954)),
+                              valueColor: AlwaysStoppedAnimation(
+                                isBlocked ? const Color(0xFFE91E63) : const Color(0xFF1DB954),
+                              ),
                               minHeight: 4,
                             ),
                           ),
@@ -226,13 +247,23 @@ class FocusTab extends ConsumerWidget {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFE8E8E8))),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFE8E8E8)),
+                  ),
                   child: Column(
                     children: [
-                      Icon(Icons.phone_android_rounded, size: 48, color: theme.primaryColor.withOpacity(0.15)),
+                      Icon(Icons.phone_android_rounded,
+                          size: 48, color: theme.primaryColor.withOpacity(0.15)),
                       const SizedBox(height: 16),
-                      Text('Usage data will appear here\nas you use your phone today.', textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF888888), height: 1.5)),
+                      Text(
+                        'Usage data will appear here\nas you use your phone today.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 14, color: const Color(0xFF888888), height: 1.5,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -246,6 +277,126 @@ class FocusTab extends ConsumerWidget {
   }
 }
 
+// ===== SKELETON CARD =====
+class _SkeletonAppCard extends StatefulWidget {
+  const _SkeletonAppCard();
+
+  @override
+  State<_SkeletonAppCard> createState() => _SkeletonAppCardState();
+}
+
+class _SkeletonAppCardState extends State<_SkeletonAppCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        final shimmerColor = Color.lerp(
+          const Color(0xFFE8E8E8),
+          const Color(0xFFF5F5F5),
+          _animation.value,
+        )!;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE8E8E8)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    // App icon skeleton
+                    Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        color: shimmerColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // App name skeleton
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 14,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: shimmerColor,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            height: 10,
+                            width: 80,
+                            decoration: BoxDecoration(
+                              color: shimmerColor,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Time skeleton
+                    Container(
+                      height: 14, width: 40,
+                      decoration: BoxDecoration(
+                        color: shimmerColor,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Progress bar skeleton
+                Container(
+                  height: 4,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: shimmerColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ===== APP ICON =====
 class _AppIcon extends StatelessWidget {
   final String packageName;
   final bool isBlocked;
@@ -258,8 +409,7 @@ class _AppIcon extends StatelessWidget {
     final iconAsync = ref.watch(appIconProvider(packageName));
 
     return Container(
-      width: 40,
-      height: 40,
+      width: 40, height: 40,
       decoration: BoxDecoration(
         color: isBlocked ? const Color(0xFFFFEBEE) : const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(12),
@@ -268,17 +418,15 @@ class _AppIcon extends StatelessWidget {
       child: iconAsync.when(
         data: (iconBytes) {
           if (iconBytes != null && iconBytes.isNotEmpty) {
-            return Image.memory(
-              iconBytes,
-              width: 40,
-              height: 40,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _fallbackIcon(),
-            );
+            return Image.memory(iconBytes, width: 40, height: 40, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _fallbackIcon());
           }
           return _fallbackIcon();
         },
-        loading: () => const Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF1DB954)))),
+        loading: () => const Center(
+          child: SizedBox(width: 16, height: 16,
+              child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF1DB954))),
+        ),
         error: (_, __) => _fallbackIcon(),
       ),
     );
@@ -293,33 +441,57 @@ class _AppIcon extends StatelessWidget {
   }
 }
 
+// ===== STAT CARD =====
 class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
   final Color color;
   final bool isLoading;
-  const _StatCard({required this.label, required this.value, required this.icon, required this.color, this.isLoading = false});
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE8E8E8))),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE8E8E8)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(height: 14),
           if (isLoading)
-            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: color))
+            SizedBox(width: 20, height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: color))
           else
-            Text(value, style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
-          Text(label, style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF888888), fontWeight: FontWeight.w500)),
+            Text(value,
+                style: GoogleFonts.poppins(
+                  fontSize: 22, fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A1A1A),
+                )),
+          Text(label,
+              style: GoogleFonts.poppins(
+                fontSize: 12, color: const Color(0xFF888888),
+                fontWeight: FontWeight.w500,
+              )),
         ],
       ),
     );

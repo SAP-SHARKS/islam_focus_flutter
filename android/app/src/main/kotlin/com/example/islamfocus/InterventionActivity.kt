@@ -39,7 +39,6 @@ class InterventionActivity : AppCompatActivity() {
     private var arabicText: TextView? = null
     private var translationText: TextView? = null
     private var surahRefText: TextView? = null
-    private var wisdomText: TextView? = null
     private var ayatCounterText: TextView? = null
     private var buttonsContainer: LinearLayout? = null
     private var reflectText: TextView? = null
@@ -50,19 +49,6 @@ class InterventionActivity : AppCompatActivity() {
     private var showTranslation = true
 
     private var fillColor: Int = Color.parseColor("#1DB954")
-
-    private val wisdomQuotes = arrayOf(
-        "A gentle reminder about focus and company.",
-        "Reflect on the blessings around you.",
-        "Patience is the key to paradise.",
-        "Every moment is an opportunity for dhikr.",
-        "Turn to Allah before you return to Allah.",
-        "The best of you are those who learn the Quran and teach it.",
-        "Remember, this world is temporary.",
-        "Your heart finds peace in the remembrance of Allah.",
-        "Be grateful for what you have.",
-        "Seek knowledge from the cradle to the grave."
-    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -308,17 +294,6 @@ class InterventionActivity : AppCompatActivity() {
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
         }
         mainLayout.addView(surahRefText!!)
-        mainLayout.addView(sp(8))
-
-        val randomWisdom = wisdomQuotes[(System.currentTimeMillis() % wisdomQuotes.size).toInt()]
-        wisdomText = TextView(this).apply {
-            text = randomWisdom
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setTextColor(Color.parseColor("#AAAAAA"))
-            gravity = Gravity.CENTER
-            setTypeface(typeface, Typeface.ITALIC)
-        }
-        mainLayout.addView(wisdomText!!)
         mainLayout.addView(sp(24))
 
         mainLayout.addView(View(this).apply {
@@ -512,8 +487,6 @@ class InterventionActivity : AppCompatActivity() {
         if (showTranslation) {
             translationText?.text = if (translationLanguage == "Urdu") ayat.urdu else ayat.english
         }
-        val randomWisdom = wisdomQuotes[(System.currentTimeMillis() % wisdomQuotes.size).toInt()]
-        wisdomText?.text = randomWisdom
     }
 
     private fun showComplete() {
