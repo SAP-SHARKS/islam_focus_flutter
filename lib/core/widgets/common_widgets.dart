@@ -128,7 +128,7 @@ class SectionHeader extends StatelessWidget {
                   subtitle!,
                   style: GoogleFonts.poppins(
                     fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
             ],
@@ -182,7 +182,7 @@ class StatCard extends StatelessWidget {
               title,
               style: GoogleFonts.poppins(
                 fontSize: 12,
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],

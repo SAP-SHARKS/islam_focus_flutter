@@ -66,5 +66,17 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.538385479650-q2to6t1d35s74gdcesfi0qps6err95vm</string>
+				<string>com.example.islamfocus</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

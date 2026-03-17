@@ -1,11 +1,8 @@
-// lib/features/blocking/providers/blocking_provider.dart
-
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Model for an installed app
 class InstalledApp {
   final String packageName;
   final String appName;
@@ -26,13 +23,12 @@ class InstalledApp {
   }
 }
 
-/// Intervention settings model
 class InterventionSettings {
-  final String mode; // 'standard_dhikr', 'breathing_only', 'quran_verse'
-  final String dhikrText; // e.g., 'SubhanAllah', 'Alhamdulillah', custom
+  final String mode;
+  final String dhikrText;
   final int breathingDurationSeconds;
-  final String fillColor; // hex color for breathing animation
-  final String frequency; // 'always', 'first_time', 'every_5_min', 'every_15_min'
+  final String fillColor;
+  final String frequency;
   final bool reInterventionEnabled;
   final int reInterventionMinutes;
 
@@ -89,7 +85,6 @@ class InterventionSettings {
   }
 }
 
-/// Blocking state
 class BlockingState {
   final List<InstalledApp> installedApps;
   final Set<String> blockedPackages;
@@ -126,7 +121,6 @@ class BlockingState {
   }
 }
 
-/// Platform channel for native Android communication
 class BlockingNotifier extends StateNotifier<BlockingState> {
   static const _channel = MethodChannel('com.islamfocus.app/blocking');
   static const _prefsKeyBlocked = 'blocked_packages';
@@ -138,15 +132,11 @@ class BlockingNotifier extends StateNotifier<BlockingState> {
     _checkPermissions();
   }
 
-  /// Load saved blocked apps and settings from SharedPreferences
   Future<void> _loadSavedData() async {
     final prefs = await SharedPreferences.getInstance();
-
-    // Load blocked packages
     final blockedList = prefs.getStringList(_prefsKeyBlocked) ?? [];
     final blocked = blockedList.toSet();
 
-    // Load intervention settings
     final settingsJson = prefs.getString(_prefsKeySettings);
     InterventionSettings settings = const InterventionSettings();
     if (settingsJson != null) {
@@ -159,9 +149,11 @@ class BlockingNotifier extends StateNotifier<BlockingState> {
       blockedPackages: blocked,
       interventionSettings: settings,
     );
+
+    // Sync to native
+    _syncToNative(blocked, settings);
   }
 
-  /// Get all installed apps from the device via platform channel
   Future<void> _loadInstalledApps() async {
     state = state.copyWith(isLoadingApps: true);
     try {
@@ -170,23 +162,20 @@ class BlockingNotifier extends StateNotifier<BlockingState> {
         final List<dynamic> appList = result;
         final apps = appList
             .map((e) => InstalledApp.fromJson(Map<String, dynamic>.from(e)))
-            .where((app) => !app.isSystemApp) // Filter out system apps
+            .where((app) => !app.isSystemApp)
             .toList();
         apps.sort((a, b) => a.appName.toLowerCase().compareTo(b.appName.toLowerCase()));
         state = state.copyWith(installedApps: apps, isLoadingApps: false);
       } else {
-        // Fallback: provide common apps if platform channel fails (web/testing)
         state = state.copyWith(installedApps: _fallbackApps(), isLoadingApps: false);
       }
     } on MissingPluginException {
-      // Running on web or platform channel not set up yet
       state = state.copyWith(installedApps: _fallbackApps(), isLoadingApps: false);
     } catch (e) {
       state = state.copyWith(installedApps: _fallbackApps(), isLoadingApps: false);
     }
   }
 
-  /// Fallback app list for testing (web/desktop)
   List<InstalledApp> _fallbackApps() {
     return [
       InstalledApp(packageName: 'com.instagram.android', appName: 'Instagram'),
@@ -211,7 +200,6 @@ class BlockingNotifier extends StateNotifier<BlockingState> {
     ];
   }
 
-  /// Toggle app blocking
   Future<void> toggleAppBlocking(String packageName) async {
     final newBlocked = Set<String>.from(state.blockedPackages);
     if (newBlocked.contains(packageName)) {
@@ -221,28 +209,19 @@ class BlockingNotifier extends StateNotifier<BlockingState> {
     }
     state = state.copyWith(blockedPackages: newBlocked);
     await _saveBlockedApps(newBlocked);
-
-    // Notify native side
-    try {
-      await _channel.invokeMethod('updateBlockedApps', {
-        'packages': newBlocked.toList(),
-      });
-    } catch (_) {}
   }
 
-  /// Update intervention settings
   Future<void> updateSettings(InterventionSettings settings) async {
     state = state.copyWith(interventionSettings: settings);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKeySettings, jsonEncode(settings.toJson()));
 
-    // Notify native side
+    // Sync to native
     try {
       await _channel.invokeMethod('updateSettings', settings.toJson());
     } catch (_) {}
   }
 
-  /// Check if permissions are granted
   Future<void> _checkPermissions() async {
     try {
       final accessibility = await _channel.invokeMethod('isAccessibilityEnabled');
@@ -251,26 +230,17 @@ class BlockingNotifier extends StateNotifier<BlockingState> {
         accessibilityEnabled: accessibility ?? false,
         usagePermissionEnabled: usage ?? false,
       );
-    } catch (_) {
-      // Platform channel not available
-    }
+    } catch (_) {}
   }
 
-  /// Open accessibility settings
   Future<void> openAccessibilitySettings() async {
-    try {
-      await _channel.invokeMethod('openAccessibilitySettings');
-    } catch (_) {}
+    try { await _channel.invokeMethod('openAccessibilitySettings'); } catch (_) {}
   }
 
-  /// Open usage access settings
   Future<void> openUsageAccessSettings() async {
-    try {
-      await _channel.invokeMethod('openUsageAccessSettings');
-    } catch (_) {}
+    try { await _channel.invokeMethod('openUsageAccessSettings'); } catch (_) {}
   }
 
-  /// Refresh permissions status
   Future<void> refreshPermissions() async {
     await _checkPermissions();
   }
@@ -278,10 +248,25 @@ class BlockingNotifier extends StateNotifier<BlockingState> {
   Future<void> _saveBlockedApps(Set<String> packages) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_prefsKeyBlocked, packages.toList());
+
+    // Sync to native side
+    try {
+      await _channel.invokeMethod('updateBlockedApps', {
+        'packages': packages.toList(),
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _syncToNative(Set<String> blocked, InterventionSettings settings) async {
+    try {
+      await _channel.invokeMethod('updateBlockedApps', {
+        'packages': blocked.toList(),
+      });
+      await _channel.invokeMethod('updateSettings', settings.toJson());
+    } catch (_) {}
   }
 }
 
-/// Provider
 final blockingProvider = StateNotifierProvider<BlockingNotifier, BlockingState>(
   (ref) => BlockingNotifier(),
 );

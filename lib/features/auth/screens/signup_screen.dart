@@ -32,22 +32,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   void _handleSignup() async {
     if (_formKey.currentState!.validate()) {
-      final success = await ref.read(authProvider.notifier).signUp(
+      await ref.read(authProvider.notifier).signUp(
             email: _emailController.text.trim(),
             password: _passwordController.text,
             fullName: _nameController.text.trim(),
           );
-
-      // If signup requires email confirmation, go back to login
-      if (success && mounted) {
-        final authState = ref.read(authProvider);
-        if (!authState.isAuthenticated && authState.successMessage != null) {
-          // Show success and pop back to login after delay
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) Navigator.pop(context);
-          });
-        }
-      }
+      // AuthGate will auto-navigate to Home once user is authenticated
     }
   }
 
@@ -195,7 +185,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     onPressed: authState.isLoading ? null : _handleSignup,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1DB954),
-                      disabledBackgroundColor: const Color(0xFF1DB954).withOpacity(0.5),
+                      disabledBackgroundColor: const Color(0xFF1DB954).withValues(alpha: 0.5),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(

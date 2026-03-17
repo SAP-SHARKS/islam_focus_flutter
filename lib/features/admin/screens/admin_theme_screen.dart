@@ -146,7 +146,6 @@ class _AdminThemeScreenState extends ConsumerState<AdminThemeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(

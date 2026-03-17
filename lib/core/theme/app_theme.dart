@@ -35,21 +35,21 @@ class AppThemeData {
     required this.brightness,
   });
 
-  /// Default Light Calming Theme
+  /// Default Light Calming Theme (Matching Onboarding)
   factory AppThemeData.lightCalm() {
     return const AppThemeData(
-      primaryColor: Color(0xFF5B9BD5),       // Soft blue
+      primaryColor: Color(0xFF1DB954),       // Spotify green
       secondaryColor: Color(0xFF2E7D6F),     // Calm teal/green
       accentColor: Color(0xFFF0C27B),        // Warm gold
-      backgroundColor: Color(0xFFF7F9FC),    // Very light blue-white
+      backgroundColor: Color(0xFFFDF8F4),    // Beige background
       surfaceColor: Color(0xFFFFFFFF),        // Pure white
       cardColor: Color(0xFFFFFFFF),           // White cards
-      textPrimary: Color(0xFF2C3E50),         // Dark blue-gray
-      textSecondary: Color(0xFF7F8C8D),       // Muted gray
+      textPrimary: Color(0xFF1A1A1A),         // Near black
+      textSecondary: Color(0xFF666666),       // Muted gray
       successColor: Color(0xFF27AE60),        // Green
       errorColor: Color(0xFFE74C3C),          // Red
       breathingStartColor: Color(0xFFE8F4FD), // Light sky blue
-      breathingEndColor: Color(0xFF5B9BD5),   // Matching primary
+      breathingEndColor: Color(0xFF1DB954),   // Matching primary
       brightness: Brightness.light,
     );
   }
@@ -163,11 +163,11 @@ class AppThemeData {
         fillColor: surfaceColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: textSecondary.withOpacity(0.3)),
+          borderSide: BorderSide(color: textSecondary.withValues(alpha: 0.3)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: textSecondary.withOpacity(0.3)),
+          borderSide: BorderSide(color: textSecondary.withValues(alpha: 0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -178,7 +178,7 @@ class AppThemeData {
       cardTheme: CardThemeData(
         color: cardColor,
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.08),
+        shadowColor: Colors.black.withValues(alpha: 0.08),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -193,6 +193,6 @@ class AppThemeData {
   }
 
   static String _colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+    return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
   }
 }

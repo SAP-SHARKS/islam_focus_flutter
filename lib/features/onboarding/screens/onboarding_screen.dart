@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:islam_focus_flutter/features/auth/screens/login_screen.dart';
+import 'package:islam_focus_flutter/features/auth/screens/auth_gate.dart';
 
-/// Onboarding data model
 class OnboardingData {
   String? gender;
   String? ageRange;
@@ -18,7 +17,7 @@ class OnboardingData {
 final onboardingDataProvider = StateProvider<OnboardingData>((ref) => OnboardingData());
 
 class OnboardingScreen extends ConsumerStatefulWidget {
-  const OnboardingScreen({super.key});
+  OnboardingScreen({super.key});
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -29,7 +28,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _currentPage = 0;
   final int _totalPages = 8;
 
-  // Selections
   String? _selectedGender;
   String? _selectedAge;
   String? _selectedAzkar;
@@ -61,7 +59,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(builder: (_) => AuthGate()),
       );
     }
   }
@@ -74,11 +72,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: Column(
           children: [
             const SizedBox(height: 16),
-            // Progress indicator
             _buildProgressBar(),
             const SizedBox(height: 8),
-
-            // Pages
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -96,8 +91,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ],
               ),
             ),
-
-            // Continue button
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
               child: SizedBox(
@@ -135,7 +128,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case 0:
       case 1:
       case 2:
-        return true; // Motivation pages always can proceed
+        return true;
       case 3:
         return _selectedGender != null;
       case 4:
@@ -151,11 +144,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  // ==========================================
-  // PROGRESS BAR
-  // ==========================================
   Widget _buildProgressBar() {
-    // Group pages into sections
     int section;
     String sectionLabel;
     if (_currentPage <= 2) {
@@ -175,7 +164,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         children: [
           Row(
             children: [
-              // Section circles with connecting lines
               for (int i = 1; i <= 3; i++) ...[
                 if (i > 1)
                   Expanded(
@@ -218,9 +206,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  // ==========================================
-  // MOTIVATION PAGE 1
-  // ==========================================
   Widget _buildMotivationPage1() {
     return _buildMotivationLayout(
       icon: Icons.phone_android_rounded,
@@ -232,9 +217,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  // ==========================================
-  // MOTIVATION PAGE 2
-  // ==========================================
   Widget _buildMotivationPage2() {
     return _buildMotivationLayout(
       icon: Icons.self_improvement_rounded,
@@ -246,9 +228,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  // ==========================================
-  // MOTIVATION PAGE 3
-  // ==========================================
   Widget _buildMotivationPage3() {
     return _buildMotivationLayout(
       icon: Icons.favorite_rounded,
@@ -273,7 +252,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Spacer(flex: 2),
-          // Icon
           Container(
             width: 100,
             height: 100,
@@ -284,7 +262,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: Icon(icon, size: 48, color: const Color(0xFF1DB954)),
           ),
           const SizedBox(height: 32),
-          // Title
           Text(
             title,
             textAlign: TextAlign.center,
@@ -296,7 +273,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          // Description
           Text(
             description,
             textAlign: TextAlign.center,
@@ -307,7 +283,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ),
           const Spacer(flex: 1),
-          // Arabic verse
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -345,9 +320,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  // ==========================================
-  // GENDER PAGE
-  // ==========================================
   Widget _buildGenderPage() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -390,9 +362,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  // ==========================================
-  // AGE PAGE
-  // ==========================================
   Widget _buildAgePage() {
     final ages = ['18-24', '25-34', '35-44', '45-54', '55+'];
     return _buildSelectionPage(
@@ -403,9 +372,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  // ==========================================
-  // AZKAR PAGE
-  // ==========================================
   Widget _buildAzkarPage() {
     final options = [
       'Morning & Evening daily',
@@ -421,9 +387,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  // ==========================================
-  // QURAN PAGE
-  // ==========================================
   Widget _buildQuranPage() {
     final options = [
       'Daily - at least 1 page',
@@ -440,9 +403,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  // ==========================================
-  // GOALS PAGE
-  // ==========================================
   Widget _buildGoalsPage() {
     final goals = [
       ('🕌', 'Be consistent in prayers'),
@@ -511,9 +471,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  // ==========================================
-  // REUSABLE SELECTION PAGE
-  // ==========================================
   Widget _buildSelectionPage({
     required String title,
     required List<String> options,
@@ -585,9 +542,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 }
 
-// ==========================================
-// GENDER CARD WIDGET
-// ==========================================
 class _GenderCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -658,9 +612,6 @@ class _GenderCard extends StatelessWidget {
   }
 }
 
-// ==========================================
-// GOAL TILE WIDGET
-// ==========================================
 class _GoalTile extends StatelessWidget {
   final String emoji;
   final String label;

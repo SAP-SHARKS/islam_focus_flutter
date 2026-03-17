@@ -9,7 +9,7 @@ class AuthService {
       // 1. Initialize Google Sign-In
       // IMPORTANT: Replace 'YOUR_WEB_CLIENT_ID' with the one from Google Cloud Console
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        serverClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+        serverClientId: '538385479650-q2to6t1d35s74gdcesfi0qps6err95vm.apps.googleusercontent.com',
       );
 
       // 2. Trigger the sign-in flow

@@ -1,322 +1,326 @@
-// lib/features/home/screens/focus_tab.dart
-
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:islam_focus_flutter/core/widgets/common_widgets.dart';
-import 'package:islam_focus_flutter/features/auth/providers/auth_provider.dart';
-import 'package:islam_focus_flutter/features/breathing/screens/breathing_screen.dart';
-import 'package:islam_focus_flutter/features/blocking/screens/intervention_settings_screen.dart';
+import 'package:islam_focus_flutter/features/stats/providers/stats_provider.dart';
 
-/// Dhikr counter provider
-final dhikrCountProvider = StateProvider<int>((ref) => 0);
+final appUsageProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  try {
+    const channel = MethodChannel('com.example.islamfocus/usage_stats');
+    final result = await channel.invokeMethod('getAppUsageStats', {'days': 1});
+    if (result != null) {
+      return (result as List).map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+  } catch (_) {}
+  return [];
+});
+
+final appIconProvider = FutureProvider.family<Uint8List?, String>((ref, packageName) async {
+  try {
+    const channel = MethodChannel('com.example.islamfocus/usage_stats');
+    final result = await channel.invokeMethod('getAppIcon', {'packageName': packageName});
+    if (result != null && result is String && result.isNotEmpty) {
+      return base64Decode(result);
+    }
+  } catch (_) {}
+  return null;
+});
 
 class FocusTab extends ConsumerWidget {
   const FocusTab({super.key});
 
+  String _formatDuration(int ms) {
+    final totalSeconds = ms ~/ 1000;
+    final minutes = totalSeconds ~/ 60;
+    final hours = minutes ~/ 60;
+    final remainMinutes = minutes % 60;
+    if (hours > 0) return '${hours}h ${remainMinutes}m';
+    if (minutes > 0) return '${minutes}m';
+    final seconds = totalSeconds % 60;
+    if (seconds > 0) return '${seconds}s';
+    return '0s';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final dhikrCount = ref.watch(dhikrCountProvider);
-    final authState = ref.watch(authProvider);
-    final userName = authState.user?.userMetadata?['full_name'] ?? 'User';
+    final stats = ref.watch(statsProvider);
+    final usageAsync = ref.watch(appUsageProvider);
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    int totalScreenTimeMs = 0;
+    int blockedAppsCount = stats.appsBlocked;
+    List<Map<String, dynamic>> topApps = [];
+
+    usageAsync.whenData((usageData) {
+      for (final app in usageData) {
+        final timeMs = (app['totalTimeMs'] as num?)?.toInt() ?? 0;
+        totalScreenTimeMs += timeMs;
+        if (timeMs > 60000) {
+          topApps.add(app);
+        }
+      }
+      topApps.sort((a, b) => ((b['totalTimeMs'] as num?)?.toInt() ?? 0).compareTo((a['totalTimeMs'] as num?)?.toInt() ?? 0));
+      if (topApps.length > 10) topApps = topApps.sublist(0, 10);
+    });
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+
+              // Daily Quote
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white, borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE8E8E8)),
+                ),
+                child: Column(
                   children: [
-                    Text(
-                      'Assalamu Alaikum',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
+                      child: Icon(Icons.format_quote_rounded, color: theme.primaryColor, size: 24),
                     ),
+                    const SizedBox(height: 16),
                     Text(
-                      userName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      '"Verily, in the remembrance of Allah do hearts find rest."',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A), height: 1.5),
                     ),
+                    const SizedBox(height: 8),
+                    Text("Surah Ar-Ra'd 13:28", style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF888888), fontWeight: FontWeight.w500)),
                   ],
                 ),
-                // Profile / Settings
-                GestureDetector(
-                  onTap: () {
-                    // TODO: Open settings / profile
-                  },
-                  child: CircleAvatar(
-                    radius: 22,
-                    backgroundColor: theme.primaryColor.withOpacity(0.1),
-                    child: Icon(
-                      Icons.person_outline,
-                      color: theme.primaryColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-
-            // Daily Quote Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.primaryColor,
-                    theme.colorScheme.secondary,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 24),
+
+              // Stats Cards
+              Row(
                 children: [
-                  Icon(
-                    Icons.format_quote_rounded,
-                    color: Colors.white.withOpacity(0.6),
-                    size: 28,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Verily, in the remembrance of Allah\ndo hearts find rest.',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                      height: 1.5,
+                  Expanded(
+                    child: _StatCard(
+                      label: 'Screen Time Today',
+                      value: usageAsync.when(
+                        data: (_) => _formatDuration(totalScreenTimeMs),
+                        loading: () => '--',
+                        error: (_, __) => '0s',
+                      ),
+                      icon: Icons.phone_android_rounded,
+                      color: const Color(0xFFFF5722),
+                      isLoading: usageAsync.isLoading,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '— Quran 13:28',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.white.withOpacity(0.7),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _StatCard(
+                      label: 'Ayat Recited',
+                      value: '${stats.totalAyatRecitation}',
+                      icon: Icons.menu_book_rounded,
+                      color: const Color(0xFF1DB954),
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 28),
-
-            // Quick Stats Row
-            Row(
-              children: [
-                Expanded(
-                  child: StatCard(
-                    title: 'Today\'s Dhikr',
-                    value: '$dhikrCount',
-                    icon: Icons.favorite_rounded,
-                    iconColor: theme.colorScheme.secondary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: StatCard(
-                    title: 'Focus Time',
-                    value: '0h',
-                    icon: Icons.timer_rounded,
-                    iconColor: theme.primaryColor,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-
-            // Dhikr Counter
-            const SectionHeader(
-              title: 'Dhikr Counter',
-              subtitle: 'Tap to count',
-            ),
-            const SizedBox(height: 12),
-            Center(
-              child: GestureDetector(
-                onTap: () {
-                  ref.read(dhikrCountProvider.notifier).state++;
-                },
-                child: Container(
-                  width: 160,
-                  height: 160,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: theme.primaryColor.withOpacity(0.08),
-                    border: Border.all(
-                      color: theme.primaryColor.withOpacity(0.3),
-                      width: 3,
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      label: 'Blocked Apps',
+                      value: '$blockedAppsCount',
+                      icon: Icons.block_rounded,
+                      color: const Color(0xFFE91E63),
                     ),
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _StatCard(
+                      label: 'Dhikr Count',
+                      value: '${stats.totalDhikr}',
+                      icon: Icons.favorite_rounded,
+                      color: const Color(0xFF4285F4),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+
+              // Today's App Usage
+              Text("Today's App Usage", style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+              const SizedBox(height: 16),
+
+              if (usageAsync.isLoading)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE8E8E8))),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        '$dhikrCount',
-                        style: GoogleFonts.poppins(
-                          fontSize: 42,
-                          fontWeight: FontWeight.bold,
-                          color: theme.primaryColor,
-                        ),
+                      SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: theme.primaryColor)),
+                      const SizedBox(height: 12),
+                      Text('Loading usage data...', style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF888888))),
+                    ],
+                  ),
+                )
+              else if (topApps.isNotEmpty)
+                ...topApps.map((app) {
+                  final timeMs = (app['totalTimeMs'] as num?)?.toInt() ?? 0;
+                  final isBlocked = app['isBlocked'] as bool? ?? false;
+                  final maxTime = (topApps.first['totalTimeMs'] as num?)?.toInt() ?? 1;
+                  final progress = timeMs / maxTime;
+                  final appName = app['appName']?.toString() ?? app['packageName']?.toString() ?? '';
+                  final packageName = app['packageName']?.toString() ?? '';
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white, borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: isBlocked ? const Color(0xFFFFCDD2) : const Color(0xFFE8E8E8)),
                       ),
-                      Text(
-                        'SubhanAllah',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                        ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              _AppIcon(packageName: packageName, isBlocked: isBlocked, ref: ref),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(appName, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF1A1A1A)), overflow: TextOverflow.ellipsis),
+                              ),
+                              if (isBlocked)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(6)),
+                                  child: Text('Blocked', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFFE91E63))),
+                                ),
+                              const SizedBox(width: 8),
+                              Text(_formatDuration(timeMs), style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF333333))),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              backgroundColor: const Color(0xFFF0F0F0),
+                              valueColor: AlwaysStoppedAnimation(isBlocked ? const Color(0xFFE91E63) : const Color(0xFF1DB954)),
+                              minHeight: 4,
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                  );
+                })
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFE8E8E8))),
+                  child: Column(
+                    children: [
+                      Icon(Icons.phone_android_rounded, size: 48, color: theme.primaryColor.withOpacity(0.15)),
+                      const SizedBox(height: 16),
+                      Text('Usage data will appear here\nas you use your phone today.', textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF888888), height: 1.5)),
                     ],
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  ref.read(dhikrCountProvider.notifier).state = 0;
-                },
-                child: Text(
-                  'Reset Counter',
-                  style: GoogleFonts.poppins(fontSize: 13, color: theme.colorScheme.error),
-                ),
-              ),
-            ),
-            const SizedBox(height: 28),
 
-            // Quick Actions
-            const SectionHeader(title: 'Quick Actions'),
-            const SizedBox(height: 12),
-
-            // Breathing Exercise Button
-            _QuickActionCard(
-              icon: Icons.air_rounded,
-              title: 'Breathing Exercise',
-              subtitle: 'Calm your mind & soul',
-              color: theme.primaryColor,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const BreathingScreen()),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-
-            // App Blocking
-            _QuickActionCard(
-              icon: Icons.block_rounded,
-              title: 'App Blocking',
-              subtitle: 'Manage blocked apps & settings',
-              color: theme.colorScheme.secondary,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const InterventionSettingsScreen()),
-                );
-              },
-            ),
-            const SizedBox(height: 32),
-
-            // Sign Out
-            Center(
-              child: TextButton.icon(
-                onPressed: () => ref.read(authProvider.notifier).signOut(),
-                icon: Icon(Icons.logout_rounded, color: theme.colorScheme.error, size: 18),
-                label: Text(
-                  'Sign Out',
-                  style: GoogleFonts.poppins(
-                    color: theme.colorScheme.error,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Quick action card widget
-class _QuickActionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
+class _AppIcon extends StatelessWidget {
+  final String packageName;
+  final bool isBlocked;
+  final WidgetRef ref;
 
-  const _QuickActionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
+  const _AppIcon({required this.packageName, required this.isBlocked, required this.ref});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-              ),
-            ],
+    final iconAsync = ref.watch(appIconProvider(packageName));
+
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: isBlocked ? const Color(0xFFFFEBEE) : const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: iconAsync.when(
+        data: (iconBytes) {
+          if (iconBytes != null && iconBytes.isNotEmpty) {
+            return Image.memory(
+              iconBytes,
+              width: 40,
+              height: 40,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _fallbackIcon(),
+            );
+          }
+          return _fallbackIcon();
+        },
+        loading: () => const Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF1DB954)))),
+        error: (_, __) => _fallbackIcon(),
+      ),
+    );
+  }
+
+  Widget _fallbackIcon() {
+    return Icon(
+      isBlocked ? Icons.block_rounded : Icons.apps_rounded,
+      color: isBlocked ? const Color(0xFFE91E63) : const Color(0xFF888888),
+      size: 22,
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final bool isLoading;
+  const _StatCard({required this.label, required this.value, required this.icon, required this.color, this.isLoading = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE8E8E8))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: color, size: 20),
           ),
-        ),
+          const SizedBox(height: 14),
+          if (isLoading)
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: color))
+          else
+            Text(value, style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+          Text(label, style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF888888), fontWeight: FontWeight.w500)),
+        ],
       ),
     );
   }

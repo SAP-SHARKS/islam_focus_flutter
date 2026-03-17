@@ -34,6 +34,17 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     }
   }
 
+  void _handleMagicLink() async {
+    if (_formKey.currentState!.validate()) {
+      final success = await ref.read(authProvider.notifier).signInWithMagicLink(
+            email: _emailController.text.trim(),
+          );
+      if (success && mounted) {
+        setState(() => _emailSent = true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -86,7 +97,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFF1DB954).withOpacity(0.1),
+              color: const Color(0xFF1DB954).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
@@ -161,7 +172,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               onPressed: authState.isLoading ? null : _handleReset,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1DB954),
-                disabledBackgroundColor: const Color(0xFF1DB954).withOpacity(0.5),
+                disabledBackgroundColor: const Color(0xFF1DB954).withValues(alpha: 0.5),
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -178,6 +189,30 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       'Send Reset Link',
                       style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Magic Link button
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: OutlinedButton(
+              onPressed: authState.isLoading ? null : _handleMagicLink,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF1DB954)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                'Send Magic Link',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1DB954),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -210,7 +245,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: const Color(0xFF1DB954).withOpacity(0.1),
+            color: const Color(0xFF1DB954).withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: const Icon(

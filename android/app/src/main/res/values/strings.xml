@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">Islam Focus uses this service to detect when you open distracting apps and show a mindful intervention screen with dhikr, Quran verses, or breathing exercises.</string>
+</resources>
